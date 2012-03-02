@@ -1,7 +1,7 @@
 Mynd
 ====
 
-DESCRIPTION
+Introduction
 -----------
 
 Mynd - mindmap application written in Haskell.
