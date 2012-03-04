@@ -1,11 +1,11 @@
 module Main where
 
 import Control.Monad ( forever )
-import Graphics.Rendering.OpenGL as GL
+import Control.Concurrent ( threadDelay )
+import Data.IORef
 import Graphics.UI.GLFW as GLFW
-import Util.Util
+import Graphics.Rendering.OpenGL as GL
 import Bindings
-import Display
 
 -- |'main' runs the main program
 main :: IO ()
@@ -24,11 +24,18 @@ main = do
   True <- GLFW.openWindow dspOpts
   GLFW.setWindowPosition 0 0
   GLFW.setWindowTitle "Hello World"
+  
+  angle <- newIORef (0.0::GLfloat)
+  delta <- newIORef (0.1::GLfloat)
+  position <- newIORef (0.0::GLfloat, 0.0::GLfloat)
+  
   GLFW.setWindowSizeCallback reshape
-  GLFW.setKeyCallback keyboard
+  GLFW.setKeyCallback $ keyboard delta position
   GLFW.setWindowCloseCallback shutdown
-  -- initGL
+  
   forever $ do
-    display
+    idle angle delta
+    display angle position
     GLFW.swapBuffers
+    threadDelay 1000
 

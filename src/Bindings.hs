@@ -1,9 +1,11 @@
-module Bindings where
+module Bindings (idle,display,reshape,keyboard,shutdown) where
 
+import Data.IORef
 import Control.Monad ( void )
 import Graphics.Rendering.OpenGL as GL
 import Graphics.UI.GLFW as GLFW
 import System.Exit ( exitSuccess )
+import Display
 
 shutdown :: GLFW.WindowCloseCallback
 shutdown = do
@@ -12,9 +14,24 @@ shutdown = do
   _ <- exitSuccess
   return True
 
-keyboard :: GLFW.KeyCallback
-keyboard GLFW.KeyEsc True = void shutdown
-keyboard _           _    = return ()
+keyboard :: IORef GLfloat -> IORef (GLfloat,GLfloat) -> GLFW.KeyCallback
+keyboard _ _ GLFW.KeyEsc    True = void shutdown
+keyboard d _ (CharKey ' ')  True = do
+  a <- readIORef d
+  writeIORef d $ -a
+keyboard _ p GLFW.KeyLeft   True = do
+  (x,y) <- readIORef p
+  writeIORef p (x-0.1,y)
+keyboard _ p GLFW.KeyRight  True = do
+  (x,y) <- readIORef p
+  writeIORef p (x+0.1,y)
+keyboard _ p GLFW.KeyUp     True = do
+  (x,y) <- readIORef p
+  writeIORef p (x,y+0.1)
+keyboard _ p GLFW.KeyDown   True = do
+  (x,y) <- readIORef p
+  writeIORef p (x,y-0.1::GLfloat)
+keyboard _ _ _           _    = return ()
 
 reshape :: GLFW.WindowSizeCallback
 reshape w     0      = reshape w 1 -- prevent divide by zero
