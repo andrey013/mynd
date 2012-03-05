@@ -2,7 +2,6 @@ module Main where
 
 import Control.Monad ( forever,void,when )
 import Control.Concurrent ( threadDelay )
-import Data.IORef
 import qualified Graphics.UI.GLFW as GLFW
 import Graphics.Rendering.OpenGL as GL
 import Bindings
@@ -24,37 +23,46 @@ main = do
                   -- , GLFW.displayOptions_displayMode = GLFW.Fullscreen
                   }
   True <- GLFW.openWindow dspOpts
-  GLFW.setWindowPosition 0 0
   GLFW.setWindowTitle "Hello World"
   
-  angle <- newIORef (0.0::GLfloat)
-  delta <- newIORef (0.1::GLfloat)
-  position <- newIORef (0.0::GLfloat, 0.0::GLfloat)
+  --angle <- newIORef (0.0::GLfloat)
+  --delta <- newIORef (0.1::GLfloat)
+  --position <- newIORef (0.0::GLfloat, 0.0::GLfloat)
   
-  GLFW.setWindowSizeCallback reshape
-  --GLFW.setKeyCallback $ keyboard delta position
   network <- compile $ do
-    eKeyPush <- registerKeyboardPush
-    --eKeyRelease <- registerKeyboardRelease
-    t <- timer 100
-    let eSpace  = filterE (== (GLFW.CharKey ' ') ) eKeyPush
+    eKeyPush <- keyboardPress
+    
+    eResize <- windowResize
+    eClose <- windowClose
+    
+    t <- timer 20
+    
+    let 
+        eSpace  = filterE (== (GLFW.CharKey ' ') ) eKeyPush
         eEsc    = filterE (== GLFW.KeyEsc ) eKeyPush
+        ePlus   = filterE (== (GLFW.CharKey '=') ) eKeyPush
+        eMinus  = filterE (== (GLFW.CharKey '-') ) eKeyPush
         
-    let
-        dmode :: Discrete Int
-        dmode = accumD 0 $
-                 ((+1) <$ eEsc)
-                 
-    reactimate $ (\i -> when (i == 4) (void shutdown)) <$> changes dmode
-    reactimate $ (\_ -> idle angle delta >> display angle position >> GLFW.swapBuffers) <$> t
+        bangle :: Behavior GLfloat
+        eangle :: Event GLfloat
+        (eangle, bangle) = mapAccum (0::GLfloat) . fmap (\f x -> (f x,f x)) $
+            ((+1) <$ ePlus) `union` ((subtract 1) <$ eMinus) `union` ((+0.1) <$ t)
+         {-   
+        angle :: Discrete GLfloat
+        angle = accumD (0::GLfloat) $
+                ((+1) <$ ePlus) `union` ((subtract 1) <$ eMinus) `union` (id <$ t)
+-}
+        position :: Discrete (GLfloat,GLfloat)
+        position = accumD (0::GLfloat,0::GLfloat) $
+                   (id <$ ePlus) `union` (id <$ eMinus)
+    
+    reactimate $ reshape <$> eResize
+    reactimate $ shutdown <$ eEsc
+    reactimate $ shutdown <$ eClose
+    reactimate $ ({-idle angle delta >> -}\a -> (display a) >> GLFW.swapBuffers) <$> eangle
 
   actuate network
   
-  GLFW.setWindowCloseCallback shutdown
-  
   forever $ do
-    --idle angle delta
-    --display angle position
-    --GLFW.swapBuffers
-    threadDelay 1000
+    threadDelay 1000000
 
