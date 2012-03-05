@@ -3,7 +3,7 @@ module Bindings (idle,display,reshape,keyboard,shutdown) where
 import Data.IORef
 import Control.Monad ( void )
 import Graphics.Rendering.OpenGL as GL
-import Graphics.UI.GLFW as GLFW
+import qualified Graphics.UI.GLFW as GLFW
 import System.Exit ( exitSuccess )
 import Display
 
@@ -16,7 +16,7 @@ shutdown = do
 
 keyboard :: IORef GLfloat -> IORef (GLfloat,GLfloat) -> GLFW.KeyCallback
 keyboard _ _ GLFW.KeyEsc    True = void shutdown
-keyboard d _ (CharKey ' ')  True = do
+keyboard d _ (GLFW.CharKey ' ')  True = do
   a <- readIORef d
   writeIORef d $ -a
 keyboard _ p GLFW.KeyLeft   True = do

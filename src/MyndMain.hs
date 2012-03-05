@@ -1,11 +1,13 @@
 module Main where
 
-import Control.Monad ( forever )
+import Control.Monad ( forever,void,when )
 import Control.Concurrent ( threadDelay )
 import Data.IORef
-import Graphics.UI.GLFW as GLFW
+import qualified Graphics.UI.GLFW as GLFW
 import Graphics.Rendering.OpenGL as GL
 import Bindings
+import Reactive.Banana
+import Reactive.Banana.GLFW
 
 -- |'main' runs the main program
 main :: IO ()
@@ -30,12 +32,29 @@ main = do
   position <- newIORef (0.0::GLfloat, 0.0::GLfloat)
   
   GLFW.setWindowSizeCallback reshape
-  GLFW.setKeyCallback $ keyboard delta position
+  --GLFW.setKeyCallback $ keyboard delta position
+  network <- compile $ do
+    eKeyPush <- registerKeyboardPush
+    --eKeyRelease <- registerKeyboardRelease
+    t <- timer 100
+    let eSpace  = filterE (== (GLFW.CharKey ' ') ) eKeyPush
+        eEsc    = filterE (== GLFW.KeyEsc ) eKeyPush
+        
+    let
+        dmode :: Discrete Int
+        dmode = accumD 0 $
+                 ((+1) <$ eEsc)
+                 
+    reactimate $ (\i -> when (i == 4) (void shutdown)) <$> changes dmode
+    reactimate $ (\_ -> idle angle delta >> display angle position >> GLFW.swapBuffers) <$> t
+
+  actuate network
+  
   GLFW.setWindowCloseCallback shutdown
   
   forever $ do
-    idle angle delta
-    display angle position
-    GLFW.swapBuffers
+    --idle angle delta
+    --display angle position
+    --GLFW.swapBuffers
     threadDelay 1000
 
