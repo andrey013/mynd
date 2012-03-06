@@ -8,6 +8,14 @@ import Bindings
 import Reactive.Banana
 import Reactive.Banana.GLFW
 
+data MyndState
+  = MyndState 
+    {
+      angle :: GLfloat,
+      delta :: GLfloat,
+      position :: (GLfloat,GLfloat)
+    }
+
 -- |'main' runs the main program
 main :: IO ()
 main = do
@@ -37,17 +45,23 @@ main = do
     
     t <- timer 20
     
-    let 
+    let
         eSpace  = filterE (== (GLFW.CharKey ' ') ) eKeyPush
         eEsc    = filterE (== GLFW.KeyEsc ) eKeyPush
         ePlus   = filterE (== (GLFW.CharKey '=') ) eKeyPush
         eMinus  = filterE (== (GLFW.CharKey '-') ) eKeyPush
         
+        state :: Behavior MyndState
+        state = stepper (MyndState 0 0 (0,0)) $ (MyndState 2 0 (0,0)) <$ eSpace
+        
+        eangle :: Event GLfloat
+        eangle = ((\y -> angle y) <$> state) <@ t
+        {-
         bangle :: Behavior GLfloat
         eangle :: Event GLfloat
         (eangle, bangle) = mapAccum (0::GLfloat) . fmap (\f x -> (f x,f x)) $
             ((+1) <$ ePlus) `union` ((subtract 1) <$ eMinus) `union` ((+0.1) <$ t)
-         {-   
+            
         angle :: Discrete GLfloat
         angle = accumD (0::GLfloat) $
                 ((+1) <$ ePlus) `union` ((subtract 1) <$ eMinus) `union` (id <$ t)
