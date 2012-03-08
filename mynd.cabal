@@ -15,5 +15,6 @@ Executable mynd
   Build-depends:     base >= 3 && < 5,
                      GLFW-b >= 0.1.0.2,
                      OpenGL >=2.5.0.0,
-                     reactive-banana >= 0.4.3.1
+                     reactive-banana >= 0.4.3.1,
+                     time >= 1.4.0.1
   hs-source-dirs:    src

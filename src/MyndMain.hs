@@ -1,7 +1,8 @@
 module Main where
 
-import Control.Monad ( forever,void,when )
+import Control.Monad ( forever,void,when,liftM2 )
 import Control.Concurrent ( threadDelay )
+import Data.Time
 import qualified Graphics.UI.GLFW as GLFW
 import Graphics.Rendering.OpenGL as GL
 import Bindings
@@ -11,11 +12,12 @@ import Reactive.Banana.GLFW
 data MyndState
   = MyndState 
     {
-      angle :: GLfloat,
-      delta :: GLfloat,
-      position :: (GLfloat,GLfloat)
+      angle :: GLfloat
+     ,delta :: GLfloat
+     ,position :: (GLfloat,GLfloat)
+     --,myndTime :: MyndTime
     }
-
+    
 -- |'main' runs the main program
 main :: IO ()
 main = do
@@ -33,50 +35,50 @@ main = do
   True <- GLFW.openWindow dspOpts
   GLFW.setWindowTitle "Hello World"
   
-  --angle <- newIORef (0.0::GLfloat)
-  --delta <- newIORef (0.1::GLfloat)
-  --position <- newIORef (0.0::GLfloat, 0.0::GLfloat)
-  
   network <- compile $ do
     eKeyPush <- keyboardPress
     
     eResize <- windowResize
     eClose <- windowClose
     
-    t <- timer 20
+    t <- timerDS 10 100
     
     let
-        eSpace  = filterE (== (GLFW.CharKey ' ') ) eKeyPush
+        isStateEvent :: UpdateEvent -> Bool
+        isStateEvent (UpdateDisplay _) = False
+        isStateEvent (UpdateState _) = True
+      
+        eSpace  = filterE (== GLFW.CharKey ' ' ) eKeyPush
         eEsc    = filterE (== GLFW.KeyEsc ) eKeyPush
-        ePlus   = filterE (== (GLFW.CharKey '=') ) eKeyPush
-        eMinus  = filterE (== (GLFW.CharKey '-') ) eKeyPush
+        ePlus   = filterE (== GLFW.CharKey '=' ) eKeyPush
+        eMinus  = filterE (== GLFW.CharKey '-' ) eKeyPush
+        eStateUpdate = filterE isStateEvent t
+        eDispayUpdate = filterE (not . isStateEvent) t
         
         state :: Behavior MyndState
-        state = stepper (MyndState 0 0 (0,0)) $ (MyndState 2 0 (0,0)) <$ eSpace
+        state = stepper (MyndState 0 0 (0,0)) $ 
+                  ((processState <$> state) <@> eStateUpdate)
+                  `union` ((clockwise <$> state) <@ ePlus)
+                  `union` ((cclockwise <$> state) <@ eMinus)
         
-        eangle :: Event GLfloat
-        eangle = ((\y -> angle y) <$> state) <@ t
-        {-
-        bangle :: Behavior GLfloat
-        eangle :: Event GLfloat
-        (eangle, bangle) = mapAccum (0::GLfloat) . fmap (\f x -> (f x,f x)) $
-            ((+1) <$ ePlus) `union` ((subtract 1) <$ eMinus) `union` ((+0.1) <$ t)
-            
-        angle :: Discrete GLfloat
-        angle = accumD (0::GLfloat) $
-                ((+1) <$ ePlus) `union` ((subtract 1) <$ eMinus) `union` (id <$ t)
--}
-        position :: Discrete (GLfloat,GLfloat)
-        position = accumD (0::GLfloat,0::GLfloat) $
-                   (id <$ ePlus) `union` (id <$ eMinus)
+        processState :: MyndState -> UpdateEvent -> MyndState
+        processState a (UpdateState b) = a {angle = angle a + (delta a)} 
+        
+        clockwise :: MyndState -> MyndState
+        clockwise a = a {delta = delta a + 0.5}
+        
+        cclockwise :: MyndState -> MyndState
+        cclockwise a = a {delta = delta a - 0.5}
+        
+        redraw :: MyndState -> UpdateEvent -> IO ()
+        redraw b (UpdateDisplay a) = display ((angle b) + (realToFrac a)) >> GLFW.swapBuffers
     
     reactimate $ reshape <$> eResize
     reactimate $ shutdown <$ eEsc
     reactimate $ shutdown <$ eClose
-    reactimate $ ({-idle angle delta >> -}\a -> (display a) >> GLFW.swapBuffers) <$> eangle
+    reactimate $ (redraw <$> state) <@> eDispayUpdate
 
   actuate network
   
-  forever $ do
-    threadDelay 1000000
+  forever $ threadDelay 1000000
 

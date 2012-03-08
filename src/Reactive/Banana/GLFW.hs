@@ -3,8 +3,14 @@ module Reactive.Banana.GLFW where
 import Reactive.Banana
 import qualified Graphics.UI.GLFW as GLFW
 import Control.Concurrent ( threadDelay,forkIO )
-import Control.Monad ( forever )
+import Control.Monad ( forever,when )
 import System.Exit ( exitSuccess )
+import Data.Time
+import Data.IORef
+
+data UpdateEvent
+  = UpdateState Float
+  | UpdateDisplay Float
 
 keyCallback :: (GLFW.Key -> IO ()) -> (GLFW.Key -> IO ()) -> GLFW.KeyCallback
 keyCallback fp _  key True  = fp key
@@ -25,7 +31,7 @@ keyboardRelease = do
 windowResize :: NetworkDescription (Event (Int, Int))
 windowResize = do
   (addHandler, fire) <- liftIO newAddHandler
-  liftIO $ GLFW.setWindowSizeCallback $ (\w h -> liftIO (fire (w, h)))
+  liftIO $ GLFW.setWindowSizeCallback $ \w h -> liftIO $ fire (w, h)
   fromAddHandler addHandler
 
 windowClose :: NetworkDescription (Event ())
@@ -34,12 +40,27 @@ windowClose = do
   liftIO $ GLFW.setWindowCloseCallback $ liftIO (fire () >> return False)
   fromAddHandler addHandler
 
-timer :: Int -> NetworkDescription (Event ())
-timer msec = do
+timerDS :: Int -> Int -> NetworkDescription (Event UpdateEvent)
+timerDS d s = do
   (addHandler, fire) <- liftIO newAddHandler
-  liftIO $ forkIO $ forever $ threadDelay (msec * 10 ^ 3) >> liftIO (fire ())
+  liftIO $ forkIO $ do
+    t <- getCurrentTime
+    r <- newIORef t
+    forever $ do
+      threadDelay (d * 10 ^ 3)
+      oldTime <- readIORef r
+      newTime <- getCurrentTime
+      let diff = fromEnum $ (diffUTCTime newTime oldTime) / 10 ^ 9
+      if ( diff > s ) 
+        then do
+          let newOldTime = addUTCTime ((fromIntegral s) / 10 ^ 3) oldTime
+          writeIORef r newOldTime
+          fire $ UpdateState $ fromIntegral s
+          fire $ UpdateDisplay $ (fromIntegral . fromEnum) (diffUTCTime newTime newOldTime) / ((fromIntegral s) * 10 ^ 9)
+        else
+          fire $ UpdateDisplay $ (fromIntegral . fromEnum) (diffUTCTime newTime oldTime) / ((fromIntegral s) * 10 ^ 9)
   fromAddHandler addHandler
-  
+
 shutdown :: IO ()
 shutdown = do
   GLFW.closeWindow
