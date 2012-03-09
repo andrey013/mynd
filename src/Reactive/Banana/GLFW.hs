@@ -12,6 +12,30 @@ data UpdateEvent
   = UpdateState Float
   | UpdateDisplay Float
 
+initGLFW :: IO ()
+initGLFW = do
+  True <- GLFW.initialize
+  let dspOpts = GLFW.defaultDisplayOptions
+                  { GLFW.displayOptions_width  = 800
+                  , GLFW.displayOptions_height = 600
+                  , GLFW.displayOptions_numRedBits   = 8
+                  , GLFW.displayOptions_numGreenBits = 8
+                  , GLFW.displayOptions_numBlueBits  = 8
+                  , GLFW.displayOptions_numAlphaBits = 8
+                  , GLFW.displayOptions_numDepthBits = 1
+                  -- , GLFW.displayOptions_displayMode = GLFW.Fullscreen
+                  }
+  True <- GLFW.openWindow dspOpts
+  GLFW.setWindowTitle "Hello World"
+
+screenDone :: IO ()
+screenDone = GLFW.swapBuffers
+  
+key :: Char -> GLFW.Key
+key = GLFW.CharKey
+
+keyEsc = GLFW.KeyEsc
+  
 keyCallback :: (GLFW.Key -> IO ()) -> (GLFW.Key -> IO ()) -> GLFW.KeyCallback
 keyCallback fp _  key True  = fp key
 keyCallback _  fr key False = fr key
@@ -50,15 +74,15 @@ timerDS d s = do
       threadDelay (d * 10 ^ 3)
       oldTime <- readIORef r
       newTime <- getCurrentTime
-      let diff = fromEnum $ (diffUTCTime newTime oldTime) / 10 ^ 9
-      if ( diff > s ) 
+      let diff = fromEnum $ diffUTCTime newTime oldTime / 10 ^ 9
+      if diff > s
         then do
-          let newOldTime = addUTCTime ((fromIntegral s) / 10 ^ 3) oldTime
+          let newOldTime = addUTCTime (fromIntegral s / 10 ^ 3) oldTime
           writeIORef r newOldTime
           fire $ UpdateState $ fromIntegral s
-          fire $ UpdateDisplay $ (fromIntegral . fromEnum) (diffUTCTime newTime newOldTime) / ((fromIntegral s) * 10 ^ 9)
+          fire $ UpdateDisplay $ (fromIntegral . fromEnum) (diffUTCTime newTime newOldTime) / (fromIntegral s * 10 ^ 9)
         else
-          fire $ UpdateDisplay $ (fromIntegral . fromEnum) (diffUTCTime newTime oldTime) / ((fromIntegral s) * 10 ^ 9)
+          fire $ UpdateDisplay $ (fromIntegral . fromEnum) (diffUTCTime newTime oldTime) / (fromIntegral s * 10 ^ 9)
   fromAddHandler addHandler
 
 shutdown :: IO ()

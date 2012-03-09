@@ -3,7 +3,7 @@ module Main where
 import Control.Monad ( forever,void,when,liftM2 )
 import Control.Concurrent ( threadDelay )
 import Data.Time
-import qualified Graphics.UI.GLFW as GLFW
+import Data.Interpolable
 import Graphics.Rendering.OpenGL as GL
 import Bindings
 import Reactive.Banana
@@ -11,29 +11,17 @@ import Reactive.Banana.GLFW
 
 data MyndState
   = MyndState 
-    {
-      angle :: GLfloat
-     ,delta :: GLfloat
-     ,position :: (GLfloat,GLfloat)
-     --,myndTime :: MyndTime
-    }
+  {
+    angle :: Interpolable GLfloat
+   ,delta :: GLfloat
+   ,position :: (GLfloat,GLfloat)
+   --,myndTime :: MyndTime
+  }
     
 -- |'main' runs the main program
 main :: IO ()
 main = do
-  True <- GLFW.initialize
-  let dspOpts = GLFW.defaultDisplayOptions
-                  { GLFW.displayOptions_width  = 800
-                  , GLFW.displayOptions_height = 600
-                  , GLFW.displayOptions_numRedBits   = 8
-                  , GLFW.displayOptions_numGreenBits = 8
-                  , GLFW.displayOptions_numBlueBits  = 8
-                  , GLFW.displayOptions_numAlphaBits = 8
-                  , GLFW.displayOptions_numDepthBits = 1
-                  -- , GLFW.displayOptions_displayMode = GLFW.Fullscreen
-                  }
-  True <- GLFW.openWindow dspOpts
-  GLFW.setWindowTitle "Hello World"
+  initGLFW
   
   network <- compile $ do
     eKeyPush <- keyboardPress
@@ -41,37 +29,37 @@ main = do
     eResize <- windowResize
     eClose <- windowClose
     
-    t <- timerDS 10 100
+    t <- timerDS 1 100
     
     let
         isStateEvent :: UpdateEvent -> Bool
         isStateEvent (UpdateDisplay _) = False
         isStateEvent (UpdateState _) = True
       
-        eSpace  = filterE (== GLFW.CharKey ' ' ) eKeyPush
-        eEsc    = filterE (== GLFW.KeyEsc ) eKeyPush
-        ePlus   = filterE (== GLFW.CharKey '=' ) eKeyPush
-        eMinus  = filterE (== GLFW.CharKey '-' ) eKeyPush
+        eSpace  = filterE (== key ' ' ) eKeyPush
+        eEsc    = filterE (== keyEsc ) eKeyPush
+        ePlus   = filterE (== key '=' ) eKeyPush
+        eMinus  = filterE (== key '-' ) eKeyPush
         eStateUpdate = filterE isStateEvent t
         eDispayUpdate = filterE (not . isStateEvent) t
         
         state :: Behavior MyndState
-        state = stepper (MyndState 0 0 (0,0)) $ 
+        state = stepper (MyndState (Interpolable (0::GLfloat) 0 0) 0 (0,0)) $ 
                   ((processState <$> state) <@> eStateUpdate)
                   `union` ((clockwise <$> state) <@ ePlus)
                   `union` ((cclockwise <$> state) <@ eMinus)
         
         processState :: MyndState -> UpdateEvent -> MyndState
-        processState a (UpdateState b) = a {angle = angle a + (delta a)} 
+        processState a (UpdateState b) = a {angle = plus (angle a) ((delta a) * (realToFrac b) / 1000)} 
         
         clockwise :: MyndState -> MyndState
-        clockwise a = a {delta = delta a + 0.5}
+        clockwise a = a {delta = delta a + 50}
         
         cclockwise :: MyndState -> MyndState
-        cclockwise a = a {delta = delta a - 0.5}
+        cclockwise a = a {delta = delta a - 50}
         
         redraw :: MyndState -> UpdateEvent -> IO ()
-        redraw b (UpdateDisplay a) = display ((angle b) + (realToFrac a)) >> GLFW.swapBuffers
+        redraw b (UpdateDisplay a) = display (interpolate(angle b) (realToFrac a)) >> screenDone
     
     reactimate $ reshape <$> eResize
     reactimate $ shutdown <$ eEsc
