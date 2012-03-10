@@ -12,6 +12,7 @@ Cabal-version:       >=1.2
 
 Executable mynd
   Main-is:           MyndMain.hs
+  Ghc-options:       -auto-all -rtsopts
   Build-depends:     base >= 3 && < 5,
                      GLFW-b >= 0.1.0.2,
                      OpenGL >=2.5.0.0,
