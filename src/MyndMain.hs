@@ -5,6 +5,7 @@ import Control.Concurrent ( threadDelay )
 import Data.Time
 import Data.Interpolable
 import Graphics.Rendering.OpenGL as GL
+import qualified Graphics.Rendering.FTGL as FTGL
 import Bindings
 import Reactive.Banana
 import Reactive.Banana.GLFW
@@ -21,8 +22,9 @@ data MyndState
 -- |'main' runs the main program
 main :: IO ()
 main = do
-  initGLFW
-  
+  initGLFW 800 600
+  curry reshape 800 600
+  font <- FTGL.createTextureFont "res/DroidSansMono.ttf"
   network <- compile $ do
     eKeyPush <- keyboardPress
     
@@ -59,7 +61,7 @@ main = do
         cclockwise a = a {delta = delta a - 50}
         
         redraw :: MyndState -> UpdateEvent -> IO ()
-        redraw b (UpdateDisplay a) = display (interpolate(angle b) (realToFrac a)) >> screenDone
+        redraw b (UpdateDisplay a) = display font (interpolate(angle b) (realToFrac a)) >> screenDone
     
     reactimate $ reshape <$> eResize
     reactimate $ shutdown <$ eEsc

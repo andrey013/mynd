@@ -12,12 +12,12 @@ data UpdateEvent
   = UpdateState Float
   | UpdateDisplay Float
 
-initGLFW :: IO ()
-initGLFW = do
+initGLFW :: Int -> Int -> IO ()
+initGLFW w h = do
   True <- GLFW.initialize
   let dspOpts = GLFW.defaultDisplayOptions
-                  { GLFW.displayOptions_width  = 800
-                  , GLFW.displayOptions_height = 600
+                  { GLFW.displayOptions_width  = w
+                  , GLFW.displayOptions_height = h
                   , GLFW.displayOptions_numRedBits   = 8
                   , GLFW.displayOptions_numGreenBits = 8
                   , GLFW.displayOptions_numBlueBits  = 8
@@ -26,7 +26,7 @@ initGLFW = do
                   -- , GLFW.displayOptions_displayMode = GLFW.Fullscreen
                   }
   True <- GLFW.openWindow dspOpts
-  GLFW.setWindowTitle "Hello World"
+  GLFW.setWindowTitle "Mynd"
 
 screenDone :: IO ()
 screenDone = GLFW.swapBuffers
