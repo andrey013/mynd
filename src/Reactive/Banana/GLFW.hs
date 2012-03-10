@@ -30,12 +30,12 @@ initGLFW w h = do
 
 screenDone :: IO ()
 screenDone = GLFW.swapBuffers
-  
+
 key :: Char -> GLFW.Key
 key = GLFW.CharKey
 
 keyEsc = GLFW.KeyEsc
-  
+
 keyCallback :: (GLFW.Key -> IO ()) -> (GLFW.Key -> IO ()) -> GLFW.KeyCallback
 keyCallback fp _  key True  = fp key
 keyCallback _  fr key False = fr key
@@ -45,7 +45,7 @@ keyboardPress = do
   (addHandlerPress, firePress) <- liftIO newAddHandler
   liftIO $ GLFW.setKeyCallback $ keyCallback firePress (\_ -> return ())
   fromAddHandler addHandlerPress
-  
+
 keyboardRelease :: NetworkDescription (Event GLFW.Key)
 keyboardRelease = do
   (addHandlerRelease, fireRelease) <- liftIO newAddHandler
