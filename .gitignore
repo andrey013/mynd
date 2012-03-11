@@ -2,3 +2,8 @@
 cabal-dev/*
 dist/*
 .directory
+mynd.aux
+mynd.hp
+mynd.prof
+mynd.ps
+mynd.summary

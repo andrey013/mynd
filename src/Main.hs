@@ -1,21 +1,37 @@
 module Main where
 
-import Control.Monad ( forever,void,when,liftM2 )
+import Control.Monad ( forever,void,when,liftM2,liftM )
 import Control.Concurrent ( threadDelay )
+import Data.Maybe
 import Data.Time
 import Data.Interpolable
-import Graphics.Rendering.OpenGL as GL
+import Data.Vector.Storable(unsafeWith)
+import Graphics.Rendering.OpenGL
 import qualified Graphics.Rendering.FTGL as FTGL
 import Reactive.Banana
 import Reactive.Banana.GLFW
 import Display
+import MyndState
+import Codec.Picture
 
-data MyndState
-  = MyndState 
-  { angle    :: Interpolable GLfloat
-  , delta    :: GLfloat
-  , position :: (GLfloat,GLfloat)
-  }
+makeTexture :: String -> IO (Maybe TextureObject)
+makeTexture filename = do
+  (Right qwe) <- readImage filename
+  (Right (ImageRGBA8 (Image width height pixels))) <- readImage filename
+
+  exts <- get glExtensions
+  texture <- if "GL_EXT_texture_object" `elem` exts
+                 then liftM listToMaybe $ genObjectNames 1
+                 else return Nothing
+  textureBinding Texture2D $= texture
+
+  textureFilter   Texture2D   $= ((Nearest, Nothing), Nearest)
+  textureWrapMode Texture2D S $= (Mirrored, ClampToEdge)
+  textureWrapMode Texture2D T $= (Mirrored, ClampToEdge)
+  unsafeWith pixels $ texImage2D Nothing NoProxy 0 RGBA'
+                          (TextureSize2D (fromIntegral width) (fromIntegral height))
+                          0 . PixelData RGBA UnsignedByte
+  return texture
 
 -- |'main' runs the main program
 main :: IO ()
@@ -23,6 +39,7 @@ main = do
   initGLFW 800 600
   curry reshape 800 600
   font <- FTGL.createTextureFont "res/DroidSansMono.ttf"
+  tex <- makeTexture "res/pixelTest.png"
   network <- compile $ do
     eKeyPush <- keyboardPress
     eResize <- windowResize
@@ -49,7 +66,7 @@ main = do
                   `union` ((cclockwise <$> state) <@ eMinus)
 
         processState :: MyndState -> UpdateEvent -> MyndState
-        processState a (UpdateState b) = a {angle = plus (angle a) ((delta a) * (realToFrac b) / 1000)} 
+        processState a (UpdateState b) = a {angle = plus (angle a) (delta a * realToFrac b / 1000)}
 
         clockwise :: MyndState -> MyndState
         clockwise a = a {delta = delta a + 0.1}
@@ -58,8 +75,9 @@ main = do
         cclockwise a = a {delta = delta a - 0.1}
 
         redraw :: MyndState -> UpdateEvent -> IO ()
-        redraw b (UpdateDisplay a) = display font (interpolate(angle b) (realToFrac a)) >> screenDone
+        redraw b (UpdateDisplay a) = display font tex (interpolate(angle b) (realToFrac a)) >> screenDone
 
+    --reactimate $ (\a -> putStrLn $ show a) <$> eKeyPush
     reactimate $ reshape  <$> eResize
     reactimate $ shutdown <$  eEsc
     reactimate $ shutdown <$  eClose
