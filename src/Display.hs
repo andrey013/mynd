@@ -1,20 +1,20 @@
 module Display (display,reshape) where
 
 import Graphics.Rendering.OpenGL
-import qualified Graphics.Rendering.FTGL as FTGL
 import Util.Util
 
-display ::FTGL.Font -> Maybe TextureObject -> GLfloat -> IO ()
-display font tex angle = do
+display :: Maybe TextureObject -> GLfloat -> IO ()
+display tex angle = do
+  clearColor $= (Color4 1 1 1 1)
   clear [ColorBuffer, DepthBuffer]
   texture Texture2D $= Enabled
+  blend $= Enabled
+  blendFunc $= (SrcAlpha, OneMinusSrcAlpha)
   preservingMatrix $ do
     rotate angle $ Vector3 0 0 (1::GLfloat)
     --scale (4::GLfloat) (4::GLfloat) (0::GLfloat)
     mapM_ (\(x,y,z) -> preservingMatrix $ do
       color $ Color3 ((x+1.0)/2.0) ((y+1.0)/2.0) ((z+1.0)/2.0)
-      FTGL.setFontFaceSize font 11 72
-      FTGL.renderFont font (show angle) FTGL.Front
 
       translate $ Vector3 0 0 (angle::GLfloat)
       textureBinding Texture2D $= tex
@@ -23,6 +23,7 @@ display font tex angle = do
 
       ) $ points 1
   texture Texture2D $= Disabled
+  blend $= Disabled
 
 reshape :: (Int, Int) -> IO ()
 reshape (w,     0)      = reshape (w, 1) -- prevent divide by zero

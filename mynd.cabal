@@ -18,7 +18,7 @@ Executable mynd
                      OpenGL >=2.5.0.0,
                      reactive-banana >= 0.4.3.1,
                      time >= 1.4.0.1,
-                     FTGL >= 1.333,
+                     freetype2 >= 0.1.0,
                      JuicyPixels >= 1.1,
                      vector >= 0.9.1
   hs-source-dirs:    src
