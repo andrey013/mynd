@@ -26,8 +26,8 @@ import Display
 import MyndState
 import Codec.Picture
 
-makeFont :: IO (Maybe TextureObject)
-makeFont = do
+makeFont :: String -> IO (Maybe TextureObject)
+makeFont filename = do
   let h = 480
       a = (25 / 360) * pi * 2
   pen    <- mallocForeignPtr
@@ -51,7 +51,7 @@ makeFont = do
 
   faceptr <- malloc
   print $ faceptr == nullPtr
-  face <- withCString "./res/DroidSansMono.ttf" $ \str -> do
+  face <- withCString filename $ \str -> do
     print =<< ft_New_Face library str 0 faceptr
     peek faceptr
 
@@ -120,7 +120,7 @@ main = do
   initGLFW 800 600
   curry reshape 800 600
   --tex <- makeTexture "res/pixelTest.png"
-  tex <- makeFont
+  tex <- makeFont "res/DejaVuSansMono.ttf"
   network <- compile $ do
     eKeyPush <- keyboardPress
     eResize <- windowResize
