@@ -19,7 +19,7 @@ display tex angle = do
       translate $ Vector3 0 0 (angle::GLfloat)
       textureBinding Texture2D $= tex
       color $ Color3 (1::GLfloat) 1 1
-      plane (512::GLfloat)
+      plane (15::GLfloat)
 
       ) $ points 1
   texture Texture2D $= Disabled
