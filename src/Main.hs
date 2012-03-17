@@ -42,8 +42,8 @@ main = do
   initGLFW 800 600
   curry reshape 800 600
   --tex <- makeTexture "res/pixelTest.png"
-  font <- makeFont "res/DejaVuSerif-Italic.ttf"
-  tex <- renderText font 20 20 "bypasbsAVI"
+  font <- makeFont "res/ttf/DejaVuSans.ttf"
+  tex <- renderText font 256 128 60 "BRAVO"
   network <- compile $ do
     eKeyPush <- keyboardPress
     eResize <- windowResize
