@@ -32,25 +32,24 @@ makeFont filename = do
     peek libraryptr
 
   faceptr <- malloc
-  face <- withCString filename $ \str -> do
+  withCString filename $ \str -> do
     ft_New_Face library str 0 faceptr
     peek faceptr
-  return face
 
 renderText :: Font -> Int -> Int -> Int -> String -> IO (Maybe TextureObject)
 renderText face dim lineHeight size string = do
 
   ft_Set_Pixel_Sizes face 0 $ fromIntegral size
   pen    <- mallocForeignPtr
-  withForeignPtr pen $ \p -> poke p (FT_Vector
+  withForeignPtr pen $ \p -> poke p FT_Vector
         { x = 128
-        , y = 0})
+        , y = 0}
 
   withForeignPtr pen $ \pp -> do
     let image = S.replicate (dim * dim) (0 :: Word8)
         buf = S.create $ do
             vec <- S.thaw image
-            sequence $ map (\(a, b) -> M.write vec a b) $ unsafePerformIO $ renderText' pp string $ unsafePerformIO $ ft_Get_Char_Index face (fromIntegral 0)
+            mapM_ (uncurry (M.write vec)) $ unsafePerformIO $ renderText' pp string $ unsafePerformIO $ ft_Get_Char_Index face 0
             return vec
     exts <- get glExtensions
     texture <- if "GL_EXT_texture_object" `elem` exts
@@ -62,7 +61,7 @@ renderText face dim lineHeight size string = do
     textureWrapMode Texture2D S $= (Mirrored, ClampToEdge)
     textureWrapMode Texture2D T $= (Mirrored, ClampToEdge)
     S.unsafeWith buf $ texImage2D Nothing NoProxy 0 RGBA'
-                                  (TextureSize2D (fromIntegral $ dim) (fromIntegral $ dim))
+                                  (TextureSize2D (fromIntegral dim) (fromIntegral dim))
                                   0 . PixelData Alpha UnsignedByte
     return texture
   where
@@ -76,19 +75,18 @@ renderText face dim lineHeight size string = do
       kerning <- do
         ft_Get_Kerning face prev char (fromIntegral ft_KERNING_DEFAULT) kerningptr
         peek kerningptr
-      print $ kerning
 
       pen'' <- peek pen
-      poke pen $ FT_Vector { x = x kerning + x pen''
+      poke pen FT_Vector { x = x kerning + x pen''
                            , y = y kerning + y pen'' }
 
       ft_Set_Transform face nullPtr pen
 
-      ft_Load_Glyph face char $ ft_LOAD_RENDER .|. (fromIntegral ft_LOAD_TARGET_NORMAL)
+      ft_Load_Glyph face char $ ft_LOAD_RENDER .|. fromIntegral ft_LOAD_TARGET_NORMAL
 
       v <- peek $ advance slot
       pen' <- peek pen
-      poke pen $ FT_Vector { x = x v + x pen'
+      poke pen FT_Vector { x = x v + x pen'
                            , y = y v + y pen' }
 
       (FT_Bitmap height width _ pixels _ _ _ _) <- peek $ GS.bitmap slot
@@ -97,11 +95,11 @@ renderText face dim lineHeight size string = do
 
       let xMax = left + fromIntegral width
           yMax = lineHeight - top + fromIntegral height
-      return $ concat (map (\(i,p) -> map (\(j,q) ->
+      return $ concatMap (\(i,p) -> map (\(j,q) ->
                   let index = q * width + p
                       imageIndex = fromIntegral $ j * dim + i
                       b = unsafePerformIO $ peek $ pixels `plusPtr` fromIntegral index
                   in if b>0 then (imageIndex, b) else (0,0))
                     (zip [ lineHeight - top .. yMax - 1] [0 .. ]))
-                    (zip [ left .. xMax - 1] [0 .. ]))
-                    ++ (unsafePerformIO $ renderText' pen xc char)
+                    (zip [ left .. xMax - 1] [0 .. ])
+                    ++ unsafePerformIO (renderText' pen xc char)

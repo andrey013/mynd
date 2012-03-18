@@ -14,7 +14,7 @@ import Reactive.Banana
 import Reactive.Banana.GLFW
 import Display
 import MyndState
-
+import MyndNet
 
 
 makeTexture :: String -> IO (Maybe TextureObject)
@@ -43,7 +43,9 @@ main = do
   curry reshape 800 600
   --tex <- makeTexture "res/pixelTest.png"
   font <- makeFont "res/ttf/DejaVuSans.ttf"
-  tex <- renderText font 256 128 60 "BRAVO"
+  tex  <- renderText font 256 128 60 "Корень"
+  tex1 <- renderText font 256 128 60 "Лист"
+  tex2 <- renderText font 256 128 60 "ЛистOK"
   network <- compile $ do
     eKeyPush <- keyboardPress
     eResize <- windowResize
@@ -64,7 +66,9 @@ main = do
         eDispayUpdate = filterE (not . isStateEvent) t
 
         state :: Behavior MyndState
-        state = stepper (MyndState (Interpolable (0::GLfloat) 0 0) 0 (0,0)) $ 
+        state = stepper (MyndState (Interpolable (0::GLfloat) 0 0) 0 (0,0)
+                                   (MyndNode "Корень" tex [MyndNode "Корень" tex1 [],
+                                                           MyndNode "Корень" tex2 []])) $
                   ((processState <$> state) <@> eStateUpdate)
                   `union` ((clockwise <$> state) <@ ePlus)
                   `union` ((cclockwise <$> state) <@ eMinus)
@@ -79,7 +83,7 @@ main = do
         cclockwise a = a {delta = delta a - 0.1}
 
         redraw :: MyndState -> UpdateEvent -> IO ()
-        redraw b (UpdateDisplay a) = display tex (interpolate(angle b) (realToFrac a)) >> screenDone
+        redraw b (UpdateDisplay a) = display b >> screenDone
 
     --reactimate $ (\a -> putStrLn $ show a) <$> eKeyPush
     reactimate $ reshape  <$> eResize

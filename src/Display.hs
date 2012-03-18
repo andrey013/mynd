@@ -2,28 +2,30 @@ module Display (display,reshape) where
 
 import Graphics.Rendering.OpenGL
 import Util.Util
+import MyndState
+import MyndNet
 
-display :: Maybe TextureObject -> GLfloat -> IO ()
-display tex angle = do
-  clearColor $= (Color4 1 1 1 1)
+display :: MyndState -> IO ()
+display state1 = do
+  clearColor $= Color4 1 1 1 1
   clear [ColorBuffer, DepthBuffer]
   texture Texture2D $= Enabled
   blend $= Enabled
   blendFunc $= (SrcAlpha, OneMinusSrcAlpha)
-  preservingMatrix $ do
-    rotate angle $ Vector3 0 0 (1::GLfloat)
-    --scale (4::GLfloat) (4::GLfloat) (0::GLfloat)
-    mapM_ (\(x,y,z) -> preservingMatrix $ do
-      color $ Color3 ((x+1.0)/2.0) ((y+1.0)/2.0) ((z+1.0)/2.0)
-
-      translate $ Vector3 0 0 (angle::GLfloat)
-      textureBinding Texture2D $= tex
-      color $ Color3 (1::GLfloat) 1 1
-      plane (256::GLfloat)
-
-      ) $ points 1
+  display' state1 0 0
   texture Texture2D $= Disabled
   blend $= Disabled
+  where
+    display' state@(MyndState {delta=angle, net=(MyndNode _ _ c)}) x y = do
+      display'' state x y
+      mapM_ (\(a, b) -> display' (state{net=a}) b (y-100)) $ zip c [top | i <- [0..], let top = x+i*200]
+    display'' state@(MyndState {delta=angle, net=(MyndNode _ tex _)}) x y =
+      preservingMatrix $ do
+        translate $ Vector3 x y (angle::GLfloat)
+        textureBinding Texture2D $= tex
+        color $ Color3 (1::GLfloat) 1 1
+        plane (256::GLfloat)
+
 
 reshape :: (Int, Int) -> IO ()
 reshape (w,     0)      = reshape (w, 1) -- prevent divide by zero
