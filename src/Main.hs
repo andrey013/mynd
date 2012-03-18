@@ -43,10 +43,10 @@ main = do
   curry reshape 800 600
   --tex <- makeTexture "res/pixelTest.png"
   font <- makeFont "res/ttf/DejaVuSans.ttf"
-  tex  <- renderText font 256 128 60 "Корень"
-  tex1 <- renderText font 256 128 60 "Лист"
-  tex2 <- renderText font 256 128 60 "Листок"
-  tex3 <- renderText font 256 128 60 "Л"
+  tex  <- renderText font 256 128 6 "Корень"
+  tex1 <- renderText font 256 128 6 "Лист"
+  tex2 <- renderText font 256 128 6 "Листок"
+  tex3 <- renderText font 256 128 6 "Л"
   network <- compile $ do
     eKeyPush <- keyboardPress
     eResize <- windowResize

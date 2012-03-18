@@ -16,7 +16,7 @@ display state1 = do
   texture Texture2D $= Disabled
   blend $= Disabled
   where
-    display' state@(MyndState {net=(MyndNode _ _ _ [])}) x y = do
+    display' state@(MyndState {net=(MyndNode _ _ _ [])}) x y =
       display'' state x y
     display' state@(MyndState {delta=angle, net=(MyndNode _ w _ c@(cx:cxs))}) x y = do
       display'' state x y
