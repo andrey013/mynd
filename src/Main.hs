@@ -43,10 +43,11 @@ main = do
   curry reshape 800 600
   --tex <- makeTexture "res/pixelTest.png"
   font <- makeFont "res/ttf/DejaVuSans.ttf"
-  tex  <- renderText font 256 128 6 "Корень"
-  tex1 <- renderText font 256 128 6 "Лист"
-  tex2 <- renderText font 256 128 6 "Листок"
-  tex3 <- renderText font 256 128 6 "Л"
+  (tex0, w0)  <- renderText font 256 128 40 "Корень"
+  (tex1, w1) <- renderText font 256 128 40 "Лист"
+  (tex2, w2) <- renderText font 256 128 40 "Листок"
+  (tex3, w3) <- renderText font 256 128 40 "Л"
+  (tex4, w4) <- renderText font 256 128 40 "Fox VA"
   network <- compile $ do
     eKeyPush <- keyboardPress
     eResize <- windowResize
@@ -68,12 +69,16 @@ main = do
 
         state :: Behavior MyndState
         state = stepper (MyndState (Interpolable (0::GLfloat) 0 0) 0 (0,0)
-                                   (MyndNode "Корень" 200 tex
-                                    [ MyndNode "Корень" 160 tex1 []
-                                    , MyndNode "Корень" 150 tex2
-                                       [ MyndNode "Корень" 50 tex3 []
-                                       , MyndNode "Корень" 50 tex3 []
+                                   (MyndNode "" tex0 w0
+                                    [ MyndNode "" tex1 w1
+                                      [ MyndNode "" tex4 w4 [MyndNode "" tex0 w0 []]
+                                      ]
+                                    , MyndNode "" tex2 w2
+                                       [ MyndNode "" tex2 w2 [MyndNode "" tex0 w0 []]
+                                       , MyndNode "" tex3 w3 [MyndNode "" tex0 w0 []]
+                                       , MyndNode "" tex2 w2 [MyndNode "" tex0 w0 []]
                                        ]
+                                    , MyndNode "" tex0 w0 [MyndNode "" tex0 w0 []]
                                     ]
                                    )
                         ) $

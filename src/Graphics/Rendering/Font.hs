@@ -20,6 +20,7 @@ import qualified Data.Vector.Storable as S
 import qualified Data.Vector.Storable.Mutable as M
 
 import Data.Maybe
+import Data.Foldable ( foldl' )
 import Control.Monad ( forever,void,when,liftM2,liftM,forM )
 
 type Font = FT_Face
@@ -36,7 +37,7 @@ makeFont filename = do
     ft_New_Face library str 0 faceptr
     peek faceptr
 
-renderText :: Font -> Int -> Int -> Int -> String -> IO (Maybe TextureObject)
+renderText :: Font -> Int -> Int -> Int -> String -> IO ((Maybe TextureObject), Int)
 renderText face dim lineHeight size string = do
 
   ft_Set_Pixel_Sizes face 0 $ fromIntegral size
@@ -45,11 +46,14 @@ renderText face dim lineHeight size string = do
         { x = 128
         , y = 0}
 
+  nullGlyph <- ft_Get_Char_Index face 0
+
   withForeignPtr pen $ \pp -> do
+    pixels <- renderText' pp string nullGlyph
     let image = S.replicate (dim * dim) (0 :: Word8)
         buf = S.create $ do
             vec <- S.thaw image
-            mapM_ (uncurry (M.write vec)) $ unsafePerformIO $ renderText' pp string $ unsafePerformIO $ ft_Get_Char_Index face 0
+            mapM_ (uncurry (M.write vec)) pixels
             return vec
     exts <- get glExtensions
     texture <- if "GL_EXT_texture_object" `elem` exts
@@ -63,7 +67,7 @@ renderText face dim lineHeight size string = do
     S.unsafeWith buf $ texImage2D Nothing NoProxy 0 RGBA'
                                   (TextureSize2D (fromIntegral dim) (fromIntegral dim))
                                   0 . PixelData Alpha UnsignedByte
-    return texture
+    return (texture, foldl' max 0 (map ((flip mod dim).fst) pixels))
   where
     renderText' _ [] _ = return []
     renderText' pen (c:xc) prev = do

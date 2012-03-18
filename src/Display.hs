@@ -5,6 +5,9 @@ import Util.Util
 import MyndState
 import MyndNet
 
+calcWidth (MyndNode _ _ w []) = w + 50
+calcWidth (MyndNode _ _ w c@(cx:cxs)) = max (sum $ map calcWidth c) w
+
 display :: MyndState -> IO ()
 display state1 = do
   clearColor $= Color4 1 1 1 1
@@ -12,17 +15,18 @@ display state1 = do
   texture Texture2D $= Enabled
   blend $= Enabled
   blendFunc $= (SrcAlpha, OneMinusSrcAlpha)
-  display' state1 0 0
+  display' state1 (-250) (250)
   texture Texture2D $= Disabled
   blend $= Disabled
   where
-    display' state@(MyndState {net=(MyndNode _ _ _ [])}) x y =
-      display'' state x y
-    display' state@(MyndState {delta=angle, net=(MyndNode _ w _ c@(cx:cxs))}) x y = do
-      display'' state x y
+    display' state@(MyndState {net=node@(MyndNode _ _ w [])}) x y =
+      display'' state (x + (fromIntegral $ calcWidth node - w - 50) / 2) y
+    display' state@(MyndState {delta=angle, net=node@(MyndNode _ _ w c@(cx:cxs))}) x y = do
+      display'' state (x + (fromIntegral $ calcWidth node - w - 50) / 2) y
       display' (state{net=cx}) x (y-100)
-      mapM_ (\(a, b) -> display' (state{net=b}) (x + fromIntegral (width a)) (y-100)) $ zip c (tail c)
-    display'' state@(MyndState {delta=angle, net=(MyndNode _ _ tex _)}) x y =
+      mapM_ (\(a, b) -> display' (state{net=b}) (x + (fromIntegral a)) (y-100))
+        $ zip ((calcWidth cx):(zipWith (+) (map calcWidth c) (map calcWidth cxs))) cxs
+    display'' state@(MyndState {delta=angle, net=(MyndNode _ tex _ _)}) x y =
       preservingMatrix $ do
         translate $ Vector3 x y (angle::GLfloat)
         textureBinding Texture2D $= tex
