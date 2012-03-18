@@ -45,13 +45,14 @@ main = do
   font <- makeFont "res/ttf/DejaVuSans.ttf"
   tex  <- renderText font 256 128 60 "Корень"
   tex1 <- renderText font 256 128 60 "Лист"
-  tex2 <- renderText font 256 128 60 "ЛистOK"
+  tex2 <- renderText font 256 128 60 "Листок"
+  tex3 <- renderText font 256 128 60 "Л"
   network <- compile $ do
     eKeyPush <- keyboardPress
     eResize <- windowResize
     eClose <- windowClose
 
-    t <- timerDS 10 200
+    t <- timerDS 20 200
 
     let
         isStateEvent :: UpdateEvent -> Bool
@@ -67,8 +68,15 @@ main = do
 
         state :: Behavior MyndState
         state = stepper (MyndState (Interpolable (0::GLfloat) 0 0) 0 (0,0)
-                                   (MyndNode "Корень" tex [MyndNode "Корень" tex1 [],
-                                                           MyndNode "Корень" tex2 []])) $
+                                   (MyndNode "Корень" 200 tex
+                                    [ MyndNode "Корень" 160 tex1 []
+                                    , MyndNode "Корень" 150 tex2
+                                       [ MyndNode "Корень" 50 tex3 []
+                                       , MyndNode "Корень" 50 tex3 []
+                                       ]
+                                    ]
+                                   )
+                        ) $
                   ((processState <$> state) <@> eStateUpdate)
                   `union` ((clockwise <$> state) <@ ePlus)
                   `union` ((cclockwise <$> state) <@ eMinus)

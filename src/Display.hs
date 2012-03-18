@@ -16,10 +16,13 @@ display state1 = do
   texture Texture2D $= Disabled
   blend $= Disabled
   where
-    display' state@(MyndState {delta=angle, net=(MyndNode _ _ c)}) x y = do
+    display' state@(MyndState {net=(MyndNode _ _ _ [])}) x y = do
       display'' state x y
-      mapM_ (\(a, b) -> display' (state{net=a}) b (y-100)) $ zip c [top | i <- [0..], let top = x+i*200]
-    display'' state@(MyndState {delta=angle, net=(MyndNode _ tex _)}) x y =
+    display' state@(MyndState {delta=angle, net=(MyndNode _ w _ c@(cx:cxs))}) x y = do
+      display'' state x y
+      display' (state{net=cx}) x (y-100)
+      mapM_ (\(a, b) -> display' (state{net=b}) (x + fromIntegral (width a)) (y-100)) $ zip c (tail c)
+    display'' state@(MyndState {delta=angle, net=(MyndNode _ _ tex _)}) x y =
       preservingMatrix $ do
         translate $ Vector3 x y (angle::GLfloat)
         textureBinding Texture2D $= tex
